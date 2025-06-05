@@ -25,15 +25,21 @@ def load_config_ID():  #再次存檔時確認已記錄資料夾
     if os.path.exists(CONFIG_FILE2):
         with open(CONFIG_FILE2, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return data.get("DeviceID", [])
+            return data["usbb"][0]["DeviceID"]
     return []
 
 def check_usb():
-    usbb = load_config_ID()
-    if usbb == detect[0]["DeviceID"]:
-        return '1'
+    usbID = load_config_ID()
+    if detect():
+        if usbID == detect()[0]["DeviceID"]:
+            return '1'
+        else:
+            return '0'
     else:
         return '0'
 
-DL = detect()[0]['DriveLetter']
-USB_BACKUP_DEST = DL + "\檔案備份地點"
+if check_usb() == '1':
+    DL = detect()[0]['DriveLetter']
+    USB_BACKUP_DEST = DL + "\檔案備份地點"
+else:
+    USB_BACKUP_DEST = []
