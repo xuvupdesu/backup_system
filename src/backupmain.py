@@ -3,8 +3,7 @@ import shutil
 import json
 from tkinter import Tk, filedialog, messagebox
 from datetime import datetime
-from usbdetecter import detect, check_usb, USB_BACKUP_DEST, save_config_INFO, load_config_ID
-
+from usbdetecter import detect, save_config_INFO, load_config_ID, check_usb, USB_BACKUP_DEST
 CONFIG_FILE = "config.json"
 BACKUP_DEST = r"C:\檔案備份地點"
 BACKUP_CYCLE_DAYS = 5
@@ -66,11 +65,21 @@ def cleanup_old_backups(dest_base, keep=5):  #清理
             print(f"已刪除過期備份：{full_path}")
 
 
+def mainb():
+    os.makedirs(BACKUP_DEST, exist_ok=True)
+    folders = load_config()
+    if check_usb() == '1':
+        backup_data(folders, USB_BACKUP_DEST)
+        cleanup_old_backups(USB_BACKUP_DEST, BACKUP_CYCLE_DAYS)
+
+    backup_data(folders, BACKUP_DEST) 
+    cleanup_old_backups(BACKUP_DEST, BACKUP_CYCLE_DAYS)
 
 def main():
     os.makedirs(BACKUP_DEST, exist_ok=True)
 
     folders = load_config()
+    usbb =load_config_ID()
 
     # 有設定過，進入選單流程
     if folders:
@@ -82,7 +91,7 @@ def main():
         print("1. 使用原有資料夾備份")
         print("2. 新增資料夾到原有設定")
         print("3. 清除全部設定並重新選擇")
-        print("4. 設定外接裝置資訊(需插入USB)")
+        print("4. 備份至外接裝置(需插入USB)")
 
         choice = input("輸入選項 (1/2/3/4)：")
 
@@ -90,7 +99,6 @@ def main():
             print("使用原設定開始備份...\n")
             backup_data(folders, BACKUP_DEST) 
             cleanup_old_backups(BACKUP_DEST, BACKUP_CYCLE_DAYS)
-            pass
 
         elif choice == "2":
             new_folders = select_multiple_folders()
@@ -99,39 +107,42 @@ def main():
                     if folder not in folders:
                         folders.append(folder)
                 save_config(folders)
-                print("新資料夾已加入設定，開始備份\n")
-                
+                print("新資料夾已加入設定，開始備份\n")              
             else:
-                print("未新增任何資料夾，維持原設定")
-            
+                print("未新增任何資料夾，維持原設定")           
             backup_data(folders, BACKUP_DEST) 
             cleanup_old_backups(BACKUP_DEST, BACKUP_CYCLE_DAYS)
 
         elif choice == "3":
             print("開始重新選擇備份資料夾")
-
             folders = select_multiple_folders()
             if folders:
                 save_config(folders)
                 print("設定已重設，開始備份\n")
             else:
                 print("未選擇任何資料夾，取消清除")
-                return  
-            
+                return             
             backup_data(folders, BACKUP_DEST)
             cleanup_old_backups(BACKUP_DEST, BACKUP_CYCLE_DAYS)
 
         elif choice == "4":
-            while True:
-                print(f'請確認此槽是否為欲備份資料的外接裝置目的地----{detect()[0]['DriveLetter']}(y/n)：')
+            if check_usb() == '1':
+                print(f'當前紀錄的USB外接裝置資訊：{usbb}')
+                print("是否重新設定?(y/n)")
                 a = input()
-                if a == "y" or a == "Y":
+                if a == 'y' or a == 'Y':
+                    save_config_INFO(detect())
+                backup_data(folders, USB_BACKUP_DEST)
+                cleanup_old_backups(USB_BACKUP_DEST, BACKUP_CYCLE_DAYS)
+            else:
+                print(f'請確認此槽是否為欲備份資料的外接裝置目的地----{detect()[0]['DriveLetter']}(y/n)：')
+                b = input()
+                if b == 'y' or b == 'Y':
                     save_config_INFO(detect())
                     backup_data(folders, USB_BACKUP_DEST)
                     cleanup_old_backups(USB_BACKUP_DEST, BACKUP_CYCLE_DAYS)
-                    break
                 else:
-                    continue
+                    pass
 
     else:
         # 第一次使用
